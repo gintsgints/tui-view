@@ -1,6 +1,7 @@
 //! A minimal terminal file viewer built on `tui-view`.
 //!
 //! Usage: `cargo run --example viewer -- path/to/file.md`
+//! Unknown or extensionless files open in the plain-text view.
 //! Keys: ↑/↓ or j/k scroll · PgUp/PgDn or Space · g/G top/bottom · q quit.
 
 use std::io::{self, stdout};
@@ -16,6 +17,8 @@ use ratatui::style::{Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Padding};
 use ratatui::Terminal;
+use std::sync::Arc;
+use tui_view::plugins::plaintext::PlainTextView;
 use tui_view::{TuiView, ViewRegistry, ViewState};
 
 fn main() -> io::Result<()> {
@@ -26,9 +29,11 @@ fn main() -> io::Result<()> {
     let content = std::fs::read_to_string(&path)?;
 
     let registry = ViewRegistry::with_defaults();
-    let Some(mut state) = ViewState::from_path(&path, content, &registry) else {
-        eprintln!("no view registered for {}", path.display());
-        std::process::exit(1);
+    // Fall back to the plain-text view for unknown or extensionless files so
+    // any file still opens.
+    let mut state = match ViewState::from_path(&path, content.as_str(), &registry) {
+        Some(state) => state,
+        None => ViewState::new(content, Arc::new(PlainTextView::new())),
     };
     let title = format!(
         " {} — {} ",
