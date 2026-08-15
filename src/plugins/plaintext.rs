@@ -7,6 +7,7 @@ use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 
 use crate::view::FormatView;
+use crate::wrap::wrap_spans;
 
 /// Renders unstyled plain text, wrapped to the viewport width.
 #[derive(Debug, Clone, Default)]
@@ -56,22 +57,10 @@ impl FormatView for PlainTextView {
 
 /// Soft-wrap `text` to `width` columns, pushing one [`Line`] per visual row.
 ///
-/// Content is preserved verbatim — leading indentation and runs of spaces are
-/// kept — so over-long lines are split at the width boundary rather than at
-/// word boundaries. A blank source line still emits one (empty) row.
+/// Thin wrapper over the shared [`wrap_spans`]: the whole source line is one
+/// span, since plain text has no internal styling.
 fn wrap_line(text: &str, width: usize, style: Style, out: &mut Vec<Line<'static>>) {
-    if text.is_empty() {
-        out.push(Line::default());
-        return;
-    }
-    let chars: Vec<char> = text.chars().collect();
-    let mut start = 0;
-    while start < chars.len() {
-        let end = (start + width).min(chars.len());
-        let chunk: String = chars[start..end].iter().collect();
-        out.push(Line::from(Span::styled(chunk, style)));
-        start = end;
-    }
+    wrap_spans(vec![Span::styled(text.to_owned(), style)], width, out);
 }
 
 #[cfg(test)]

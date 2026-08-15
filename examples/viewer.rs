@@ -2,7 +2,9 @@
 //!
 //! Usage: `cargo run --example viewer -- path/to/file.md`
 //! Binary files open in the hex view; unknown or extensionless text files
-//! open in the plain-text view.
+//! open in the plain-text view. Source files are highlighted when the matching
+//! grammar is compiled in:
+//! `cargo run --features languages --example viewer -- src/lib.rs`
 //! Keys: ↑/↓ or j/k scroll · PgUp/PgDn or Space · g/G top/bottom · q quit.
 
 use std::io;

@@ -108,7 +108,9 @@ impl ViewRegistry {
     /// A registry pre-populated with every view enabled by crate features.
     ///
     /// With the default features this contains the Markdown, JSON, plain-text,
-    /// and hex views, in that lookup order.
+    /// and hex views, in that lookup order. With the `treesitter` feature the
+    /// source-code views for the enabled `lang-*` grammars sit after JSON, so
+    /// the dedicated Markdown and JSON views keep their extensions.
     #[must_use]
     pub fn with_defaults() -> Self {
         let mut r = Self::new();
@@ -116,6 +118,10 @@ impl ViewRegistry {
         r.register(Arc::new(crate::plugins::markdown::MarkdownView::new()));
         #[cfg(feature = "json")]
         r.register(Arc::new(crate::plugins::json::JsonView::new()));
+        #[cfg(feature = "treesitter")]
+        for view in crate::plugins::treesitter::views() {
+            r.register(view);
+        }
         #[cfg(feature = "plaintext")]
         r.register(Arc::new(crate::plugins::plaintext::PlainTextView::new()));
         #[cfg(feature = "hex")]

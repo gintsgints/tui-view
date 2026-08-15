@@ -1,8 +1,8 @@
 # tui-view
 
 A [ratatui](https://ratatui.rs) widget library for viewing text files through
-**pluggable, per-format views**. Ships with Markdown, JSON, and plain-text
-views; add your own by implementing one trait.
+**pluggable, per-format views**. Ships with Markdown, JSON, plain-text, hex,
+and Tree-sitter source-code views; add your own by implementing one trait.
 
 ## Architecture
 
@@ -74,9 +74,75 @@ Register more specific views first — the first matching view wins.
   `JsonView::with_theme(JsonTheme { .. })`.
 - **Plain text** (`plaintext` feature) — verbatim content, source line breaks
   preserved, long lines soft-wrapped to width.
+- **Hex** (`hex` feature) — offset / hex / ASCII dump. Claims any binary
+  content through `ViewRegistry::find_for`, whatever the extension says, so no
+  file is unopenable.
+- **Source code** (one `lang-*` feature per language) — parses with the
+  language's [Tree-sitter](https://tree-sitter.github.io) grammar and paints
+  from its `highlights.scm`. Reskin via
+  `TreeSitterView::with_theme(language, SyntaxTheme { .. })`.
 
-All three are on by default. Use `default-features = false` (plus the features
-you want) to trim what compiles.
+Everything but the source-code view is on by default. Use
+`default-features = false` (plus the features you want) to trim what compiles.
+
+## Source code highlighting
+
+Grammars are C parsers, so each language is its own opt-in feature:
+
+```toml
+tui-view = { version = "0.1", features = ["lang-rust", "lang-python"] }
+# ...or every bundled grammar:
+tui-view = { version = "0.1", features = ["languages"] }
+```
+
+Each feature registers one view per language:
+
+| Feature | Views (extensions) |
+|---------|--------------------|
+| `lang-rust` | Rust (`rs`) |
+| `lang-python` | Python (`py`, `pyi`) |
+| `lang-javascript` | JavaScript (`js`, `mjs`, `cjs`), JSX (`jsx`) |
+| `lang-typescript` | TypeScript (`ts`, `mts`, `cts`), TSX (`tsx`) |
+| `lang-go` | Go (`go`) |
+| `lang-c` | C (`c`, `h`) |
+| `lang-bash` | Shell (`sh`, `bash`, `zsh`) |
+| `lang-toml` | TOML (`toml`) |
+| `lang-yaml` | YAML (`yaml`, `yml`) |
+| `lang-html` | HTML (`html`, `htm`) |
+| `lang-css` | CSS (`css`) |
+
+`lang-typescript` implies `lang-javascript`: the TypeScript queries only cover
+what TypeScript adds, so the JavaScript ones go in front of them.
+
+Enabled languages are registered by `ViewRegistry::with_defaults`, after
+Markdown and JSON so those keep their extensions.
+
+Any other grammar crate works without a change here — add the grammar to your
+own `Cargo.toml`, then describe it and register the view:
+
+```rust
+use std::sync::Arc;
+use tui_view::plugins::treesitter::{SyntaxLanguage, TreeSitterView};
+use tui_view::ViewRegistry;
+
+let zig = SyntaxLanguage::new(
+    "Zig",
+    &["zig"],
+    || tree_sitter_zig::LANGUAGE.into(),
+    tree_sitter_zig::HIGHLIGHTS_QUERY,
+);
+
+let mut registry = ViewRegistry::with_defaults();
+registry.register(Arc::new(TreeSitterView::new(zig)));
+```
+
+Optional queries are added with `.with_injections(..)` (languages embedded in
+this one) and `.with_locals(..)` (local definitions, so a variable is not
+mistaken for a function).
+
+Highlighting never hides content: a grammar whose queries fail to compile, or
+a file the highlighter cannot parse, falls back to unstyled text, and broken
+syntax still renders every line — Tree-sitter recovers from parse errors.
 
 ## Example viewer
 
@@ -84,6 +150,7 @@ you want) to trim what compiles.
 cargo run --example viewer -- examples/files/sample.md
 cargo run --example viewer -- examples/files/sample.json
 cargo run --example viewer -- examples/files/sample.txt
+cargo run --features languages --example viewer -- examples/files/sample.rs
 ```
 
 Keys: `↑`/`↓` or `j`/`k` scroll · `PgUp`/`PgDn` or `Space` page · `g`/`G`
@@ -94,6 +161,11 @@ top/bottom · `q` quit.
 - `markdown` (default) — the Markdown `FormatView`.
 - `json` (default) — the JSON `FormatView`.
 - `plaintext` (default) — the plain-text `FormatView`.
+- `hex` (default) — the hex-dump `FormatView`.
+- `treesitter` — the source-code `FormatView` with no grammars; useful only
+  when you bring your own.
+- `lang-*` — one Tree-sitter grammar each; each implies `treesitter`.
+- `languages` — every bundled grammar.
 
 ## License
 

@@ -18,6 +18,21 @@
 //! [`ViewRegistry::find_for`] it claims any content that is not text, so no
 //! file is unopenable.
 //!
+//! ## Source code
+//!
+//! The Tree-sitter view (`plugins::treesitter::TreeSitterView`) highlights
+//! source files from the language's own grammar. It is opt-in — a grammar is a
+//! C parser — with one `lang-*` cargo feature per language and `languages` for
+//! all of them:
+//!
+//! ```toml
+//! tui-view = { version = "0.1", features = ["lang-rust", "lang-python"] }
+//! ```
+//!
+//! Enabled languages are registered by [`ViewRegistry::with_defaults`], and a
+//! language that is not bundled can be added from any grammar crate without
+//! touching this crate — see the `plugins::treesitter` module docs.
+//!
 //! ## Binary files
 //!
 //! ```no_run
@@ -78,6 +93,9 @@
 
 mod view;
 mod widget;
+
+#[cfg(any(feature = "plaintext", feature = "treesitter"))]
+mod wrap;
 
 pub mod plugins;
 

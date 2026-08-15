@@ -3,6 +3,8 @@
 use std::path::Path;
 
 use ratatui::backend::TestBackend;
+#[cfg(feature = "lang-rust")]
+use ratatui::style::Color;
 use ratatui::widgets::Block;
 use ratatui::Terminal;
 use tui_view::{TuiView, ViewRegistry, ViewState};
@@ -123,6 +125,33 @@ fn text_files_are_unaffected_by_the_hex_fallback() {
         let state = ViewState::from_file_bytes(Path::new(path), bytes, &reg).unwrap();
         assert_eq!(state.view().name(), view_name, "wrong view for {path}");
     }
+}
+
+#[test]
+#[cfg(feature = "lang-rust")]
+fn source_files_are_highlighted_without_altering_the_text() {
+    let reg = ViewRegistry::with_defaults();
+    let path = Path::new("examples/files/sample.rs");
+    let content = std::fs::read_to_string(path).expect("read sample.rs");
+
+    let mut state = ViewState::from_path(path, content.clone(), &reg).expect("Rust view");
+    assert_eq!(state.view().name(), "Rust");
+
+    // Wider than the longest line in the sample, so nothing soft-wraps.
+    let mut term = Terminal::new(TestBackend::new(100, 24)).unwrap();
+    term.draw(|f| f.render_stateful_widget(TuiView::new(), f.area(), &mut state))
+        .unwrap();
+
+    let text = rows(&term).join("\n");
+    assert!(text.contains("pub enum Level"), "source altered:\n{text}");
+    // Highlighting only paints: every source line still has a rendered row.
+    assert_eq!(state.line_count(), content.lines().count());
+    // Something on screen is styled — a bare render would leave the default.
+    let buf = term.backend().buffer();
+    assert!(
+        buf.content().iter().any(|cell| cell.fg != Color::Reset),
+        "nothing was highlighted:\n{text}"
+    );
 }
 
 #[test]
