@@ -1,8 +1,8 @@
 # tui-view
 
 A [ratatui](https://ratatui.rs) widget library for viewing text files through
-**pluggable, per-format views**. Ships with a Markdown view; add your own by
-implementing one trait.
+**pluggable, per-format views**. Ships with Markdown, JSON, and plain-text
+views; add your own by implementing one trait.
 
 ## Architecture
 
@@ -62,14 +62,21 @@ registry.register(Arc::new(PlainText));
 
 Register more specific views first — the first matching view wins.
 
-## Markdown view
+## Bundled views
 
-Behind the default `markdown` feature. Supports headings, emphasis / strong /
-strikethrough, inline code and math, links and images, bullet + ordered lists
-(nested), task-list checkboxes, block quotes, fenced/indented code blocks, and
-thematic breaks. Reskin via `MarkdownView::with_theme(Theme { .. })`.
+- **Markdown** (`markdown` feature) — headings, emphasis / strong /
+  strikethrough, inline code and math, links and images, bullet + ordered
+  lists (nested), task-list checkboxes, block quotes, fenced/indented code
+  blocks, thematic breaks. Reskin via `MarkdownView::with_theme(Theme { .. })`.
+- **JSON** (`json` feature) — parses and pretty-prints with syntax
+  highlighting (keys, strings, numbers, booleans, `null`, punctuation). Invalid
+  JSON falls back to raw text under an error banner. Reskin via
+  `JsonView::with_theme(JsonTheme { .. })`.
+- **Plain text** (`plaintext` feature) — verbatim content, source line breaks
+  preserved, long lines soft-wrapped to width.
 
-Disable it with `default-features = false` if you only want the framework.
+All three are on by default. Use `default-features = false` (plus the features
+you want) to trim what compiles.
 
 ## Example viewer
 
@@ -83,6 +90,8 @@ top/bottom · `q` quit.
 ## Feature flags
 
 - `markdown` (default) — the Markdown `FormatView`.
+- `json` (default) — the JSON `FormatView`.
+- `plaintext` (default) — the plain-text `FormatView`.
 
 ## License
 

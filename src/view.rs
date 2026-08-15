@@ -61,12 +61,17 @@ impl ViewRegistry {
 
     /// A registry pre-populated with every view enabled by crate features.
     ///
-    /// With the default `markdown` feature this contains the Markdown view.
+    /// With the default features this contains the Markdown, JSON, and
+    /// plain-text views, in that lookup order.
     #[must_use]
     pub fn with_defaults() -> Self {
         let mut r = Self::new();
         #[cfg(feature = "markdown")]
         r.register(Arc::new(crate::plugins::markdown::MarkdownView::new()));
+        #[cfg(feature = "json")]
+        r.register(Arc::new(crate::plugins::json::JsonView::new()));
+        #[cfg(feature = "plaintext")]
+        r.register(Arc::new(crate::plugins::plaintext::PlainTextView::new()));
         r
     }
 

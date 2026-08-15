@@ -9,12 +9,15 @@ keywords = ["ratatui", "tui", "widget", "viewer", "markdown"]
 categories = ["command-line-interface", "text-processing"]
 
 [features]
-default = ["markdown"]
+default = ["markdown", "json", "plaintext"]
 markdown = ["dep:pulldown-cmark"]
+json = ["dep:serde_json"]
+plaintext = []
 
 [dependencies]
 ratatui = "0.29"
 pulldown-cmark = { version = "0.12", default-features = false, optional = true }
+serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 crossterm = "0.28"
