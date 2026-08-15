@@ -4,6 +4,19 @@ A [ratatui](https://ratatui.rs) widget library for viewing text files through
 **pluggable, per-format views**. Ships with Markdown, JSON, plain-text, hex,
 and Tree-sitter source-code views; add your own by implementing one trait.
 
+![The Markdown view rendering AGENTS.md — headings, inline code, and bullet
+lists styled in the terminal](docs/images/markdown-view.png)
+
+![The Tree-sitter view rendering sample.rs — doc comments, keywords, types,
+and attributes highlighted from the Rust grammar](docs/images/rust-view.png)
+
+Both shots come from the bundled example viewer:
+
+```
+cargo run --example viewer -- AGENTS.md
+cargo run --features lang-rust --example viewer -- examples/files/sample.rs
+```
+
 ## Architecture
 
 | Piece | Role |
