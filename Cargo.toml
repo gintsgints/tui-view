@@ -1,0 +1,20 @@
+[package]
+name = "tui-view"
+version = "0.1.0"
+edition = "2021"
+description = "A ratatui widget library for pluggable text file format views"
+license = "MIT OR Apache-2.0"
+repository = ""
+keywords = ["ratatui", "tui", "widget", "viewer", "markdown"]
+categories = ["command-line-interface", "text-processing"]
+
+[features]
+default = ["markdown"]
+markdown = ["dep:pulldown-cmark"]
+
+[dependencies]
+ratatui = "0.29"
+pulldown-cmark = { version = "0.12", default-features = false, optional = true }
+
+[dev-dependencies]
+crossterm = "0.28"
