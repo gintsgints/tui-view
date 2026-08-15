@@ -3,7 +3,7 @@
 A quick tour of what the **Markdown** view renders. Try it with:
 
 ```
-cargo run --example viewer -- sample.md
+cargo run --example viewer -- examples/files/sample.md
 ```
 
 ## Inline styles

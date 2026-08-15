@@ -1,0 +1,19 @@
+{
+  "name": "tui-view",
+  "version": "0.1.0",
+  "pluggable": true,
+  "views": ["markdown", "json", "plaintext"],
+  "widget": {
+    "scrollable": true,
+    "wraps": true,
+    "cache": "per-width"
+  },
+  "counts": {
+    "plugins": 3,
+    "dependencies": 2
+  },
+  "notes": null,
+  "unicode": "keys and strings survive: café — ☕",
+  "empty_object": {},
+  "empty_array": []
+}

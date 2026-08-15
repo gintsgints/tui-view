@@ -72,3 +72,42 @@ fn scroll_clamps_to_bottom() {
     assert_eq!(state.scroll(), state.max_scroll());
     assert!(state.scroll() <= state.line_count());
 }
+
+#[test]
+fn every_sample_file_renders() {
+    let reg = ViewRegistry::with_defaults();
+    // (file, view name, a marker that must survive rendering into the buffer)
+    let cases = [
+        ("examples/files/sample.md", "Markdown", "tui-view sample"),
+        ("examples/files/sample.json", "JSON", "\"tui-view\""),
+        (
+            "examples/files/sample.txt",
+            "Plain text",
+            "plain-text sample",
+        ),
+    ];
+
+    for (path, view_name, marker) in cases {
+        let content = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
+        let mut state = ViewState::from_path(Path::new(path), content, &reg)
+            .unwrap_or_else(|| panic!("no view for {path}"));
+        assert_eq!(state.view().name(), view_name, "wrong view for {path}");
+
+        let mut term = Terminal::new(TestBackend::new(80, 30)).unwrap();
+        term.draw(|f| {
+            f.render_stateful_widget(
+                TuiView::new().block(Block::bordered()),
+                f.area(),
+                &mut state,
+            );
+        })
+        .unwrap();
+
+        assert!(state.line_count() > 0, "{path} rendered nothing");
+        let text = rows(&term).join("\n");
+        assert!(
+            text.contains(marker),
+            "{path}: expected {marker:?} in:\n{text}"
+        );
+    }
+}

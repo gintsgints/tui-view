@@ -1,0 +1,10 @@
+tui-view plain-text sample
+
+This file is rendered by the plain-text view. Source line breaks are kept, so
+this paragraph stays one logical line and gets soft-wrapped to whatever width
+the terminal gives it — resize the window and the wrapping follows.
+
+    Indented lines and    runs of spaces are preserved as written.
+
+Blank lines above and below stay blank. Nothing here is styled; it is your
+content, verbatim, just made scrollable.

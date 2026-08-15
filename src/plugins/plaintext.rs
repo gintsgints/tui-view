@@ -54,30 +54,24 @@ impl FormatView for PlainTextView {
     }
 }
 
-/// Word-wrap `text` to `width` columns, pushing one [`Line`] per visual row.
-/// A blank source line still emits one (empty) row.
+/// Soft-wrap `text` to `width` columns, pushing one [`Line`] per visual row.
+///
+/// Content is preserved verbatim — leading indentation and runs of spaces are
+/// kept — so over-long lines are split at the width boundary rather than at
+/// word boundaries. A blank source line still emits one (empty) row.
 fn wrap_line(text: &str, width: usize, style: Style, out: &mut Vec<Line<'static>>) {
     if text.is_empty() {
         out.push(Line::default());
         return;
     }
-    let mut line = String::new();
-    let mut line_w = 0usize;
-    for word in text.split(' ') {
-        let ww = word.chars().count();
-        let need = if line_w == 0 { ww } else { ww + 1 };
-        if line_w > 0 && line_w + need > width {
-            out.push(Line::from(Span::styled(std::mem::take(&mut line), style)));
-            line_w = 0;
-        }
-        if line_w > 0 {
-            line.push(' ');
-            line_w += 1;
-        }
-        line.push_str(word);
-        line_w += ww;
+    let chars: Vec<char> = text.chars().collect();
+    let mut start = 0;
+    while start < chars.len() {
+        let end = (start + width).min(chars.len());
+        let chunk: String = chars[start..end].iter().collect();
+        out.push(Line::from(Span::styled(chunk, style)));
+        start = end;
     }
-    out.push(Line::from(Span::styled(line, style)));
 }
 
 #[cfg(test)]
@@ -105,12 +99,19 @@ mod tests {
     }
 
     #[test]
-    fn wraps_long_lines() {
+    fn wraps_long_lines_verbatim() {
         let lines = plain(&PlainTextView::new().render("aa bb cc dd ee", 5));
         for l in &lines {
             assert!(l.chars().count() <= 5, "overflow: {l:?}");
         }
-        assert_eq!(lines.join(" "), "aa bb cc dd ee");
+        // Verbatim: concatenating the rows reproduces the source exactly.
+        assert_eq!(lines.concat(), "aa bb cc dd ee");
+    }
+
+    #[test]
+    fn preserves_indentation_and_space_runs() {
+        let lines = plain(&PlainTextView::new().render("    a    b", 80));
+        assert_eq!(lines, vec!["    a    b"]);
     }
 
     #[test]

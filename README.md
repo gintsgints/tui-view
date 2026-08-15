@@ -81,7 +81,9 @@ you want) to trim what compiles.
 ## Example viewer
 
 ```
-cargo run --example viewer -- sample.md
+cargo run --example viewer -- examples/files/sample.md
+cargo run --example viewer -- examples/files/sample.json
+cargo run --example viewer -- examples/files/sample.txt
 ```
 
 Keys: `↑`/`↓` or `j`/`k` scroll · `PgUp`/`PgDn` or `Space` page · `g`/`G`
