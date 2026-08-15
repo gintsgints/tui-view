@@ -4,19 +4,14 @@
 //! Unknown or extensionless files open in the plain-text view.
 //! Keys: ↑/↓ or j/k scroll · PgUp/PgDn or Space · g/G top/bottom · q quit.
 
-use std::io::{self, stdout};
+use std::io;
 use std::path::PathBuf;
 
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-};
-use crossterm::ExecutableCommand;
-use ratatui::backend::CrosstermBackend;
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Padding};
-use ratatui::Terminal;
+use ratatui::DefaultTerminal;
 use std::sync::Arc;
 use tui_view::plugins::plaintext::PlainTextView;
 use tui_view::{TuiView, ViewRegistry, ViewState};
@@ -41,22 +36,13 @@ fn main() -> io::Result<()> {
         state.view().name()
     );
 
-    enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-
+    let mut terminal = ratatui::init();
     let result = run(&mut terminal, &mut state, &title);
-
-    disable_raw_mode()?;
-    stdout().execute(LeaveAlternateScreen)?;
+    ratatui::restore();
     result
 }
 
-fn run<B: ratatui::backend::Backend>(
-    terminal: &mut Terminal<B>,
-    state: &mut ViewState,
-    title: &str,
-) -> io::Result<()> {
+fn run(terminal: &mut DefaultTerminal, state: &mut ViewState, title: &str) -> io::Result<()> {
     loop {
         terminal.draw(|f| {
             let block = Block::bordered()

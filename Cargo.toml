@@ -15,9 +15,6 @@ json = ["dep:serde_json"]
 plaintext = []
 
 [dependencies]
-ratatui = "0.29"
+ratatui = "0.30"
 pulldown-cmark = { version = "0.12", default-features = false, optional = true }
 serde_json = { version = "1", optional = true }
-
-[dev-dependencies]
-crossterm = "0.28"
