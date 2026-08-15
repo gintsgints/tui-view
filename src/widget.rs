@@ -9,15 +9,18 @@ use ratatui::widgets::{Block, StatefulWidget, Widget};
 
 use crate::view::{FormatView, ViewRegistry};
 
-/// Retained state for a [`TuiView`]: the source text, its chosen view, the
+/// Retained state for a [`TuiView`]: the source bytes, its chosen view, the
 /// cached render, and the scroll position.
+///
+/// Content is kept as raw bytes so views that care about them — the hex view —
+/// see the file exactly as it is on disk; text views decode it themselves.
 ///
 /// The state re-renders lazily: the [`FormatView`] is only invoked when the
 /// available width changes (first draw or terminal resize), so scrolling is
 /// cheap. Scroll offsets are clamped against the viewport height recorded on
 /// the previous draw.
 pub struct ViewState {
-    content: String,
+    content: Vec<u8>,
     view: Arc<dyn FormatView>,
     cache: Option<Cached>,
     scroll: usize,
@@ -33,8 +36,16 @@ struct Cached {
 impl ViewState {
     /// Build state from raw `content` rendered by an explicit `view`.
     pub fn new(content: impl Into<String>, view: Arc<dyn FormatView>) -> Self {
+        Self::from_bytes(content.into().into_bytes(), view)
+    }
+
+    /// Build state from raw `bytes` rendered by an explicit `view`.
+    ///
+    /// Unlike [`new`](Self::new) this imposes no encoding, so binary content
+    /// reaches the view intact.
+    pub fn from_bytes(bytes: impl Into<Vec<u8>>, view: Arc<dyn FormatView>) -> Self {
         Self {
-            content: content.into(),
+            content: bytes.into(),
             view,
             cache: None,
             scroll: 0,
@@ -44,7 +55,10 @@ impl ViewState {
 
     /// Build state by looking `path` up in `registry` to pick a view.
     ///
-    /// Returns `None` if no registered view matches the path's extension.
+    /// Returns `None` if no registered view matches the path's extension. Use
+    /// [`from_file_bytes`](Self::from_file_bytes) instead when the content may
+    /// be binary: it also consults the bytes, so binary files reach the hex
+    /// view.
     pub fn from_path(
         path: &std::path::Path,
         content: impl Into<String>,
@@ -52,6 +66,22 @@ impl ViewState {
     ) -> Option<Self> {
         let view = registry.find(path)?;
         Some(Self::new(content, view))
+    }
+
+    /// Build state for a file from its raw `bytes`, picking the view with
+    /// [`ViewRegistry::find_for`].
+    ///
+    /// Binary content goes to whichever view claims it — the hex view, with
+    /// the default registry — regardless of the path's extension. Returns
+    /// `None` if nothing matches.
+    pub fn from_file_bytes(
+        path: &std::path::Path,
+        bytes: impl Into<Vec<u8>>,
+        registry: &ViewRegistry,
+    ) -> Option<Self> {
+        let bytes = bytes.into();
+        let view = registry.find_for(path, &bytes)?;
+        Some(Self::from_bytes(bytes, view))
     }
 
     /// The view rendering this content.
@@ -63,9 +93,21 @@ impl ViewState {
     /// Replace the content, keeping the same view. Invalidates the cache and
     /// resets scroll to the top.
     pub fn set_content(&mut self, content: impl Into<String>) {
-        self.content = content.into();
+        self.set_bytes(content.into().into_bytes());
+    }
+
+    /// Replace the content with raw bytes, keeping the same view. Invalidates
+    /// the cache and resets scroll to the top.
+    pub fn set_bytes(&mut self, bytes: impl Into<Vec<u8>>) {
+        self.content = bytes.into();
         self.cache = None;
         self.scroll = 0;
+    }
+
+    /// The raw content being viewed.
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.content
     }
 
     /// Swap the view used to render the current content. Invalidates the cache.
@@ -126,7 +168,7 @@ impl ViewState {
     fn ensure(&mut self, width: u16) -> &Text<'static> {
         let stale = self.cache.as_ref().is_none_or(|c| c.width != width);
         if stale {
-            let text = self.view.render(&self.content, width);
+            let text = self.view.render_bytes(&self.content, width);
             self.cache = Some(Cached { width, text });
         }
         &self.cache.as_ref().unwrap().text

@@ -9,10 +9,11 @@ keywords = ["ratatui", "tui", "widget", "viewer", "markdown"]
 categories = ["command-line-interface", "text-processing"]
 
 [features]
-default = ["markdown", "json", "plaintext"]
+default = ["markdown", "json", "plaintext", "hex"]
 markdown = ["dep:pulldown-cmark"]
 json = ["dep:serde_json"]
 plaintext = []
+hex = []
 
 [dependencies]
 ratatui = "0.30"

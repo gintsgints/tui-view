@@ -74,6 +74,58 @@ fn scroll_clamps_to_bottom() {
 }
 
 #[test]
+fn binary_file_falls_back_to_hex() {
+    let reg = ViewRegistry::with_defaults();
+    let path = Path::new("examples/files/sample.bin");
+    let bytes = std::fs::read(path).expect("read sample.bin");
+
+    let mut state = ViewState::from_file_bytes(path, bytes.clone(), &reg).expect("hex view");
+    assert_eq!(state.view().name(), "Hex");
+
+    let mut term = Terminal::new(TestBackend::new(80, 20)).unwrap();
+    term.draw(|f| {
+        f.render_stateful_widget(
+            TuiView::new().block(Block::bordered()),
+            f.area(),
+            &mut state,
+        );
+    })
+    .unwrap();
+
+    let text = rows(&term).join("\n");
+    // Offset column, the magic bytes, and the printable ASCII column.
+    assert!(text.contains("00000000"), "missing offset:\n{text}");
+    assert!(text.contains("89 50 4e 47"), "missing hex bytes:\n{text}");
+    assert!(text.contains("|.PNG"), "missing ASCII column:\n{text}");
+    // Every byte is accounted for: one row per full row of bytes.
+    let per_row = 16; // 78 inner columns is exactly the 16-byte layout
+    assert_eq!(state.line_count(), bytes.len().div_ceil(per_row));
+}
+
+#[test]
+fn binary_content_outranks_a_text_extension() {
+    let reg = ViewRegistry::with_defaults();
+    // Named like JSON, actually a binary blob.
+    let state = ViewState::from_file_bytes(Path::new("payload.json"), vec![0x00, 0xff, 0x10], &reg)
+        .unwrap();
+    assert_eq!(state.view().name(), "Hex");
+}
+
+#[test]
+fn text_files_are_unaffected_by_the_hex_fallback() {
+    let reg = ViewRegistry::with_defaults();
+    for (path, view_name) in [
+        ("examples/files/sample.md", "Markdown"),
+        ("examples/files/sample.json", "JSON"),
+        ("examples/files/sample.txt", "Plain text"),
+    ] {
+        let bytes = std::fs::read(path).unwrap();
+        let state = ViewState::from_file_bytes(Path::new(path), bytes, &reg).unwrap();
+        assert_eq!(state.view().name(), view_name, "wrong view for {path}");
+    }
+}
+
+#[test]
 fn every_sample_file_renders() {
     let reg = ViewRegistry::with_defaults();
     // (file, view name, a marker that must survive rendering into the buffer)

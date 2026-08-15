@@ -1,7 +1,8 @@
 //! A minimal terminal file viewer built on `tui-view`.
 //!
 //! Usage: `cargo run --example viewer -- path/to/file.md`
-//! Unknown or extensionless files open in the plain-text view.
+//! Binary files open in the hex view; unknown or extensionless text files
+//! open in the plain-text view.
 //! Keys: ↑/↓ or j/k scroll · PgUp/PgDn or Space · g/G top/bottom · q quit.
 
 use std::io;
@@ -21,15 +22,16 @@ fn main() -> io::Result<()> {
         eprintln!("usage: viewer <file>");
         std::process::exit(2);
     };
-    let content = std::fs::read_to_string(&path)?;
+    let content = std::fs::read(&path)?;
 
     let registry = ViewRegistry::with_defaults();
-    // Fall back to the plain-text view for unknown or extensionless files so
-    // any file still opens.
-    let mut state = match ViewState::from_path(&path, content.as_str(), &registry) {
-        Some(state) => state,
-        None => ViewState::new(content, Arc::new(PlainTextView::new())),
-    };
+    // `find_for` sends binary content to the hex view; fall back to the
+    // plain-text view for unknown or extensionless text files so any file
+    // still opens.
+    let view = registry
+        .find_for(&path, &content)
+        .unwrap_or_else(|| Arc::new(PlainTextView::new()));
+    let mut state = ViewState::from_bytes(content, view);
     let title = format!(
         " {} — {} ",
         path.file_name().unwrap_or_default().to_string_lossy(),

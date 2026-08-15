@@ -6,14 +6,31 @@
 //! The crate splits into three pieces:
 //!
 //! - [`FormatView`] — the plugin trait. Implement it to teach the viewer a new
-//!   file format. It turns raw text into styled, width-wrapped [`Text`].
+//!   file format. It turns raw content into styled, width-wrapped [`Text`].
 //! - [`ViewRegistry`] — an ordered set of views; picks one for a file by
-//!   extension.
+//!   extension, or by sniffing its bytes.
 //! - [`TuiView`] + [`ViewState`] — a scrollable widget that renders whatever a
 //!   view produced and remembers scroll position and a render cache.
 //!
 //! A [Markdown view](plugins::markdown::MarkdownView) ships behind the default
-//! `markdown` feature and is the reference plugin.
+//! `markdown` feature and is the reference plugin. The
+//! [hex view](plugins::hex::HexView) is the fallback for binary files: with
+//! [`ViewRegistry::find_for`] it claims any content that is not text, so no
+//! file is unopenable.
+//!
+//! ## Binary files
+//!
+//! ```no_run
+//! use std::path::Path;
+//! use tui_view::{ViewRegistry, ViewState};
+//!
+//! let registry = ViewRegistry::with_defaults();
+//! let path = Path::new("logo.png");
+//! let bytes = std::fs::read(path).unwrap();
+//! // Picks the hex view: the content is binary, whatever the extension says.
+//! let state = ViewState::from_file_bytes(path, bytes, &registry).unwrap();
+//! assert_eq!(state.view().name(), "Hex");
+//! ```
 //!
 //! ## Quick start
 //!
@@ -64,7 +81,7 @@ mod widget;
 
 pub mod plugins;
 
-pub use view::{FormatView, ViewRegistry};
+pub use view::{is_binary, FormatView, ViewRegistry};
 pub use widget::{TuiView, ViewState};
 
 // Re-export for convenience so downstream code needn't depend on ratatui's
